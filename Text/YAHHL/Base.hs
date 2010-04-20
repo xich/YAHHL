@@ -47,7 +47,7 @@ instance HTML T.Text where
 
 -- So we can do empty tag groups, like: html body => <html><body></body></html>
 instance (HTML a, a ~ Tag) => HTML (a -> Tag) where
-    render f = error "called render on a function"
+    render f = render $ f EmptyTag
     store f = [f EmptyTag]
 
 tag :: (HTML a) => String -> a -> Tag
