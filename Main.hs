@@ -72,8 +72,24 @@ close = T.pack "</"
 end = T.pack ">"
 endQuote = T.pack "\""
 
-tag :: (HTML a) => String -> [Attribute] -> a -> Tag
-tag n a c = Tag (T.pack n) a (store c)
+-- Don't really like this solution but living with it for now.
+-- tag :: (HTML a) => String -> [Attribute] -> a -> Tag
+-- tag n a c = Tag (T.pack n) a (store c)
+tag :: (HTML a) => String -> a -> Tag
+tag n c = Tag (T.pack n) [] (store c)
+
+class AddAttr a where
+    (!) :: a -> [Attribute] -> a
+
+instance (AddAttr b) => AddAttr (a -> b) where
+    fn ! attrs = \ cs -> fn cs ! attrs
+
+instance AddAttr Tag where
+    (Tag n a c) ! attr = Tag n (a ++ attr) c
+    other       ! _    = other
+
+infixl 8 !
+-- End solution I don't like.
 
 {-
 class TagContent a b | a -> b where
@@ -90,9 +106,15 @@ simple3 = mkTag "html" (tag "body" [] [tag "h1" [] "something", tag "p" [align "
 align = Align . T.pack
 href  = Href  . T.pack
 
-simple = tag "html" [] [tag "body" [] [tag "h1" [] "something", tag "p" [align "right"] "blah"]]
+simple = tag "html" $ tag "body" [tag "h1" "something", tag "p" ! [align "right"] $ "blah" ]
 simple2 = html $ body [ h1 "something"
-                      , p_a [align "right"] "blah"]
+                      , p ! [align "right"] $ "blah"]
+
+ruby = html [ head_ $ title "happy title"
+            , body [ h1 "happy heading"
+                   , a ! [href "url"] $ "a link"
+                   ]
+            ]
 
 main = defaultMain [ bench "empty"     $ nf render $ html $ body
                    , bench "old-empty" $ nf H.renderHtml $ H.body H.noHtml
@@ -104,21 +126,16 @@ main = defaultMain [ bench "empty"     $ nf render $ html $ body
                                                                    H.+++
                                                                    H.hotlink "url" [H.primHtml "something"]
                                                                    ))
-                   , bench "ruby"      $ nf render $ html [ head_ $ title "happy title"
-                                                          , body [ h1 "happy heading"
-                                                                 , a [href "url"] "a link"
-                                                                 ]
-                                                          ]
+                   , bench "ruby"      $ nf render $ ruby
                    ]
 
 html :: (HTML a) => a -> Tag
-html = tag "html" []
-head_ = tag "head" []
+html = tag "html"
+head_ = tag "head"
 body :: (HTML a) => a -> Tag
-body = tag "body" []
-h1   = tag "h1"   []
+body = tag "body"
+h1   = tag "h1"
 p :: (HTML a) => a -> Tag
-p    = tag "p"    []
-p_a  = tag "p"
+p    = tag "p"
 a    = tag "a"
-title = tag "title" []
+title = tag "title"
