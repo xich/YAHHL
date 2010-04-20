@@ -1,6 +1,6 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, UndecidableInstances, FlexibleContexts, FlexibleInstances, OverlappingInstances, TypeFamilies #-}
+{-# LANGUAGE IncoherentInstances, MultiParamTypeClasses, FunctionalDependencies, UndecidableInstances, FlexibleContexts, FlexibleInstances, OverlappingInstances, TypeFamilies #-}
 
-module Text.YAHHL.Base (tag, (!), HTML(..), Tag(..)) where
+module Text.YAHHL.Base (Entity(..), (#), (#!), HTML(..), Tag(..)) where
 
 import Text.YAHHL.Attribute
 import Text.YAHHL.CAF
@@ -50,41 +50,37 @@ instance (HTML a, a ~ Tag) => HTML (a -> Tag) where
     render f = render $ f EmptyTag
     store f = [f EmptyTag]
 
-tag :: (HTML a) => String -> a -> Tag
-tag n c = Tag (T.pack n) [] (store c)
-
-{- Was trying to get this syntax to work: p "foo" and p [align "right"] "foo"
-tag :: (HTML a) => String -> [Attribute] -> a -> Tag
-tag n a c = Tag (T.pack n) a (store c)
-
-class TagContent a b | a -> b where
-    mkTag :: (HTML b) => String -> a -> b
-
-instance (HTML a) => TagContent [Attribute] (a -> Tag) where
-    mkTag name as = tag name as
-
-instance (HTML c) => TagContent c Tag where
-    mkTag name cs = tag name [] cs
-
-simple3 = mkTag "html" (tag "body" [] [tag "h1" [] "something", tag "p" [align "right"] "blah"])
--}
-
 renderA as = T.concat $ map r as
     where
         r Empty = T.empty
         r (Align dir) = T.concat [T.pack $ " align=\"", dir, endQuote]
         r (Href url)  = T.concat [T.pack $ " href=\"", url, endQuote]
 
--- Don't really like this solution but living with it for now.
-class AddAttr a where
-    (!) :: a -> [Attribute] -> a
+-- So we can write either:
+--   1. body "blah"
+-- Or:
+--   2. body [color "red"] "blah"
+-- Or:
+--   3. body
+class Entity e where
+    mkTag :: String -> [Attribute] -> e
 
-instance (AddAttr b) => AddAttr (a -> b) where
-    fn ! attrs = \ cs -> fn cs ! attrs
+-- case 1
+instance HTML a => Entity (a -> Tag) where
+    mkTag n as t = Tag (T.pack n) as (store t)
 
-instance AddAttr Tag where
-    (Tag n a c) ! attr = Tag n (a ++ attr) c
-    other       ! _    = other
+-- case 2
+instance Entity e => Entity ([Attribute] -> e) where
+    mkTag n as a = mkTag n (a++as)
 
-infixl 8 !
--- End solution I don't like.
+-- case 3
+instance Entity Tag where
+    mkTag n as = Tag (T.pack n) as []
+
+-- To force the types of the above correctly.
+-- TODO: Combine these into one.
+infixr 0 #
+(#) l r = l $ (id :: Tag -> Tag) r
+
+infixr 0 #!
+(#!) l r = l $ (id :: [Tag] -> [Tag]) r
