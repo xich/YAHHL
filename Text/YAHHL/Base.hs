@@ -1,4 +1,4 @@
-{-# LANGUAGE IncoherentInstances, MultiParamTypeClasses, FunctionalDependencies, UndecidableInstances, FlexibleContexts, FlexibleInstances, OverlappingInstances, TypeFamilies #-}
+{-# LANGUAGE FlexibleInstances, OverlappingInstances, TypeFamilies #-}
 
 module Text.YAHHL.Base (Entity(..), (#), (#!), HTML(..), Tag(..)) where
 
