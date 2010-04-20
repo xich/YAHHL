@@ -1,0 +1,5 @@
+An HTML Combinator Library for Haskell that uses Data.Text.Lazy instead of Strings.
+
+At the moment, this is around 2-3 times as fast as Text.Html when compiled with -O2 (according to criterion).
+
+Still messing with achieving minimum syntax at the moment. Haven't really tried for more performance or anything.
