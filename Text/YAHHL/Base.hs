@@ -56,31 +56,38 @@ renderA as = T.concat $ map r as
         r (Align dir) = T.concat [T.pack $ " align=\"", dir, endQuote]
         r (Href url)  = T.concat [T.pack $ " href=\"", url, endQuote]
 
--- So we can write either:
---   1. body "blah"
--- Or:
---   2. body [color "red"] "blah"
--- Or:
---   3. body
+-- The following is hackery so the list of arguments can be optional.
 class Entity e where
     mkTag :: String -> [Attribute] -> e
 
--- case 1
+-- case 1: next argument is a child of some sort (including list of children)
 instance HTML a => Entity (a -> Tag) where
     mkTag n as t = Tag (T.pack n) as (store t)
 
--- case 2
+-- case 2: next argument is an attribute list
 instance Entity e => Entity ([Attribute] -> e) where
     mkTag n as a = mkTag n (a++as)
 
--- case 3
+-- case 3: no next argument/children
 instance Entity Tag where
     mkTag n as = Tag (T.pack n) as []
 
 -- To force the types of the above correctly.
--- TODO: Combine these into one.
 infixr 0 #
 (#) l r = l $ (id :: Tag -> Tag) r
 
 infixr 0 #!
 (#!) l r = l $ (id :: [Tag] -> [Tag]) r
+
+{- TODO: Combine these into one. Seems like this
+-- _should_ do it, but no worky worky yet.
+infixr 0 !
+class Forceable a where
+    (!) :: Entity (a -> b) => (a -> b) -> a -> b
+
+instance Forceable Tag where
+    (!) l r = l $ (id :: Tag -> Tag) r
+
+instance Forceable [Tag] where
+    (!) l r = l $ (id :: [Tag] -> [Tag]) r
+-}
