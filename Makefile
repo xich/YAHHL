@@ -5,4 +5,7 @@ build:
 	ghc -O2 -fforce-recomp --make Main.hs
 
 clean:
-	-rm *.o ./Main *.hi
+	-rm *.o ./Main *.hi ./App
+
+app:
+	ghc -O2 -fforce-recomp --make App.hs
