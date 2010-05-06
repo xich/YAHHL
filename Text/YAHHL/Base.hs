@@ -1,6 +1,7 @@
 {-# LANGUAGE FlexibleInstances, OverlappingInstances, TypeFamilies #-}
 
-module Text.YAHHL.Base (Entity(..), (#), (#!), HTML(..), Tag(..)) where
+--module Text.YAHHL.Base (Entity(..), (#), (#!), HTML(..), Tag(..)) where
+module Text.YAHHL.Base (mkTag, (!), HTML(..), Tag(..)) where
 
 import Text.YAHHL.Attribute
 import Text.YAHHL.CAF
@@ -56,7 +57,23 @@ renderA as = T.concat $ map r as
         r (Align dir) = T.concat [T.pack $ " align=\"", dir, endQuote]
         r (Href url)  = T.concat [T.pack $ " href=\"", url, endQuote]
 
--- The following is hackery so the list of arguments can be optional.
+class AddAttr a where
+    (!) :: a -> [Attribute] -> a
+
+instance (AddAttr b) => AddAttr (a -> b) where
+    fn ! attrs = \ cs -> fn cs ! attrs
+
+instance AddAttr Tag where
+    (Tag n a c) ! attr = Tag n (a ++ attr) c
+    other       ! _    = other
+
+infixl 8 !
+
+mkTag :: (HTML a) => String -> [Attribute] -> a -> Tag
+mkTag n a c = Tag (T.pack n) a (store c)
+
+{- The following is hackery so the list of arguments can be optional.
+-- I would use this except I don't like the # combinators.
 class Entity e where
     mkTag :: String -> [Attribute] -> e
 
@@ -78,7 +95,7 @@ infixr 0 #
 
 infixr 0 #!
 (#!) l r = l $ (id :: [Tag] -> [Tag]) r
-
+-}
 {- TODO: Combine these into one. Seems like this
 -- _should_ do it, but no worky worky yet.
 infixr 0 !
